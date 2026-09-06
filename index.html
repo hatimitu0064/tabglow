@@ -1,0 +1,606 @@
+<title>TabGlow</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+  :root{
+    --bg:#1A1714;
+    --panel:#26201A;
+    --panel-edge:#393026;
+    --wood-1:#4A3323;
+    --wood-2:#2E2016;
+    --ink:#EDE4D8;
+    --ink-dim:#9B8F80;
+    --ink-faint:#6B6156;
+    --glow:#FFB347;
+    --glow-deep:#E08A1E;
+    --fretwire:#8A8378;
+    --string-line:#C7BBA8;
+    --sans:"Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", sans-serif;
+    --mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:15px;
+    line-height:1.7;
+    margin:0;
+    padding:0 20px 64px;
+  }
+  .wrap{max-width:1080px;margin:0 auto}
+
+  header{
+    display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;
+    padding:34px 0 10px;
+  }
+  h1{
+    font-size:28px;font-weight:700;margin:0;letter-spacing:.02em;
+  }
+  h1 .dot{color:var(--glow)}
+  .tagline{color:var(--ink-dim);font-size:13.5px;margin:0}
+
+  .toolbar{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:10px 0 22px;
+  }
+  .seg{
+    display:inline-flex;border:1px solid var(--panel-edge);border-radius:8px;overflow:hidden;
+  }
+  .seg button{
+    appearance:none;border:0;background:transparent;color:var(--ink-dim);
+    font-family:var(--sans);font-size:14px;font-weight:500;
+    padding:7px 18px;cursor:pointer;
+  }
+  .seg button.on{background:var(--panel-edge);color:var(--ink)}
+  .seg-mode button{font-size:15px;font-weight:700;padding:9px 24px}
+  .seg-mode button.on{background:var(--glow);color:#1A1408}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;padding:0 0 18px}
+  .chip-btn{
+    appearance:none;border:1px solid var(--panel-edge);background:var(--panel);
+    color:var(--ink);font-family:var(--mono);font-size:15px;font-weight:600;
+    min-width:52px;padding:8px 10px;border-radius:8px;cursor:pointer;
+  }
+  .chip-btn.on{background:var(--glow);color:#1A1408;border-color:var(--glow)}
+  .seg button:focus-visible,button:focus-visible,input:focus-visible,.cell:focus-visible{
+    outline:2px solid var(--glow);outline-offset:2px;
+  }
+
+  .board-card{
+    background:linear-gradient(180deg,var(--panel) 0%,#221C16 100%);
+    border:1px solid var(--panel-edge);
+    border-radius:14px;
+    padding:22px 18px 14px;
+  }
+  .board-card svg{display:block;width:100%;height:auto}
+
+  .tab-card{
+    background:var(--panel);
+    border:1px solid var(--panel-edge);
+    border-radius:14px;
+    padding:16px 10px 14px;
+    margin-top:14px;
+  }
+  .tab-scroll{overflow-x:auto;padding-bottom:4px}
+  .tabgrid{
+    display:grid;
+    font-family:var(--mono);
+    font-size:15px;
+    min-width:max-content;
+  }
+  .cell{
+    width:38px;height:30px;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--ink);
+    position:relative;
+    background:transparent;border:0;padding:0;
+    font-family:var(--mono);font-size:15px;
+    cursor:pointer;border-radius:4px;
+  }
+  .cell .ln{
+    position:absolute;left:0;right:0;top:50%;height:1px;
+    background:var(--panel-edge);
+  }
+  .cell span{position:relative;z-index:1;background:var(--panel);padding:0 3px;border-radius:3px}
+  .cell.empty span{color:var(--ink-faint);background:transparent}
+  .cell.barstart{border-left:1px solid var(--ink-faint)}
+  .cell.cur span{color:#1A1408;background:var(--glow);font-weight:600}
+  .cell.cur.empty span{background:transparent;color:var(--ink-faint)}
+  .cell.curcol{background:rgba(255,179,71,.07)}
+  .rowlabel{
+    width:64px;height:30px;display:flex;align-items:center;gap:7px;
+    color:var(--ink-dim);font-size:12.5px;font-family:var(--sans);
+    padding-left:6px;white-space:nowrap;
+  }
+  .rowlabel .chip{width:8px;height:8px;border-radius:50%;flex:none}
+
+  .transport{
+    display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+    margin-top:20px;
+    background:var(--panel);border:1px solid var(--panel-edge);border-radius:14px;
+    padding:14px 20px;
+  }
+  .playbtn{
+    appearance:none;border:0;cursor:pointer;
+    background:var(--glow);color:#1A1408;
+    font-family:var(--sans);font-weight:700;font-size:15px;
+    border-radius:8px;padding:10px 26px;
+    letter-spacing:.04em;
+  }
+  .playbtn:active{background:var(--glow-deep)}
+  .tempo{display:flex;align-items:center;gap:12px;color:var(--ink-dim);font-size:13.5px}
+  .tempo input{accent-color:var(--glow);width:180px}
+  .tempo .bpm{font-family:var(--mono);color:var(--ink);font-variant-numeric:tabular-nums;min-width:7ch}
+  .loopnote{color:var(--ink-faint);font-size:12.5px}
+
+  .learn{
+    margin-top:36px;
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;
+  }
+  .learn .card{
+    background:var(--panel);border:1px solid var(--panel-edge);border-radius:14px;
+    padding:18px 20px;
+  }
+  .learn h2{
+    font-size:13px;font-weight:700;letter-spacing:.12em;color:var(--glow);
+    text-transform:uppercase;margin:0 0 10px;
+  }
+  .learn p,.learn li{color:var(--ink-dim);font-size:13.5px;margin:0}
+  .learn ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px}
+  .learn b{color:var(--ink);font-weight:700}
+
+  @media (prefers-reduced-motion:no-preference){
+    .fret-note{animation:pop .18s ease-out}
+    @keyframes pop{from{transform:scale(.6);opacity:.3}to{transform:scale(1);opacity:1}}
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>TabGlow<span class="dot">.</span></h1>
+    <p class="tagline">タブ譜が読めなくても、光った場所を押さえれば弾ける。</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="seg seg-mode" role="group" aria-label="練習モードの切り替え">
+      <button id="modeTab" class="on">TAB譜</button>
+      <button id="modeChord">コード</button>
+    </div>
+    <div class="seg" id="instSeg" role="group" aria-label="楽器の切り替え">
+      <button id="segGuitar" class="on">ギター</button>
+      <button id="segBass">ベース</button>
+    </div>
+    <span class="loopnote" id="modeNote">フレーズは自動でループします。タブ譜の数字をクリックすると、その音だけ確認できます。</span>
+  </div>
+
+  <div class="chips" id="chordChips" hidden></div>
+
+  <div class="board-card">
+    <svg id="board" viewBox="0 0 1060 240" aria-label="指板"></svg>
+  </div>
+
+  <div class="tab-card" id="tabCard">
+    <div class="tab-scroll">
+      <div class="tabgrid" id="tabgrid"></div>
+    </div>
+  </div>
+
+  <div class="transport" id="transportEl">
+    <button class="playbtn" id="play">▶ 再生</button>
+    <div class="tempo">
+      <span>テンポ</span>
+      <input type="range" id="bpm" min="40" max="180" value="90" aria-label="テンポ(BPM)">
+      <span class="bpm" id="bpmval">90 BPM</span>
+    </div>
+  </div>
+
+  <div class="learn">
+    <div class="card">
+      <h2>このプロトタイプの見どころ</h2>
+      <ul>
+        <li>再生中、<b>指板上のいま押さえる場所が光り</b>、次に押さえる場所が輪郭だけの円で予告されます。</li>
+        <li>タブ譜側も同じタイミングでハイライトされ、<b>「タブの数字 ⇔ 指板の位置」の対応</b>が目で追えます。</li>
+        <li><b>コードモード</b>では、コード名をクリックすると押さえる場所が指番号つきで光り、ストラム音で響きを確認できます。</li>
+        <li>音はブラウザ内のシンセ(撥弦シミュレーション)で鳴らしています。音源ファイル不要です。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>次に決めること(仕様メモ)</h2>
+      <ul>
+        <li>曲データの入れ方 — Guitar Pro 読み込み / テキストタブ / アプリ内エディタ</li>
+        <li>リズム表現 — いまは8分音符固定。休符・音価をどこまで扱うか</li>
+        <li>奏法記号 — チョーキング、ハンマリング等を指板上でどう見せるか</li>
+        <li>スマホ縦画面での指板レイアウト</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ---- 楽曲・楽器データ -------------------------------------------------
+// s: 弦インデックス(0 = 1弦=最も高い弦)、f: フレット
+// 曲: ドレミファソラシド(音階)→ かえるのうた。4分音符=2ステップ、8分音符=1ステップ
+function buildSong(P){
+  const N = k => ({ s: P[k][0], f: P[k][1] });
+  const steps = [];
+  const eighths  = ks => { for (const k of ks) steps.push(k ? [N(k)] : []); };
+  const quarters = ks => { for (const k of ks) { steps.push(k ? [N(k)] : []); steps.push([]); } };
+  quarters(["C","D","E","F","G","A","B","C2"]); // ドレミファソラシド
+  quarters(["C","D","E","F"]);                  // かえるのうたが
+  quarters(["E","D","C",null]);
+  quarters(["E","F","G","A"]);                  // きこえてくるよ
+  quarters(["G","F","E",null]);
+  quarters(["C",null,"C",null]);                // クヮ クヮ
+  quarters(["C",null,"C",null]);                // クヮ クヮ
+  eighths(["C","C","D","D","E","E","F","F"]);   // ケロケロケロケロ
+  quarters(["E","D","C",null]);                 // クヮ クヮ クヮ
+  return steps;
+}
+const INSTRUMENTS = {
+  guitar: {
+    label: "ギター",
+    strings: ["e", "B", "G", "D", "A", "E"],
+    midi: [64, 59, 55, 50, 45, 40],           // 1弦→6弦
+    gauges: [1.1, 1.3, 1.6, 2.1, 2.6, 3.1],   // 描画上の弦の太さ
+    steps: buildSong({ C:[4,3], D:[3,0], E:[3,2], F:[3,3], G:[2,0], A:[2,2], B:[1,0], C2:[1,1] }),
+  },
+  bass: {
+    label: "ベース",
+    strings: ["G", "D", "A", "E"],
+    midi: [43, 38, 33, 28],
+    gauges: [2.0, 2.6, 3.2, 3.8],
+    steps: buildSong({ C:[2,3], D:[1,0], E:[1,2], F:[1,3], G:[0,0], A:[0,2], B:[0,4], C2:[0,5] }),
+  },
+};
+const STRING_COLORS = ["#D96F6F","#D9A05C","#C9C25E","#7FBF7A","#6FA8D9","#A98BD1"];
+const NOTE_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+let FRETS = 24; // TAB譜モード=24、コードモード=12
+
+let inst = "guitar";
+let bpm = 90;
+let playing = false;
+let stepIndex = 0;        // 次にスケジュールするステップ
+let visualStep = -1;      // 表示中のステップ
+let nextNoteTime = 0;
+let schedTimer = null;
+let queue = [];           // {step, time}
+let ctx = null, master = null;
+
+const data = () => INSTRUMENTS[inst];
+const totalSteps = () => data().steps.length;
+const stepDur = () => 60 / bpm / 2; // 8分音符
+
+// ---- 指板の描画 -------------------------------------------------------
+const boardSvg = document.getElementById("board");
+// ヘッドとナットが右、24フレットが左(自分のギターを覗き込んだ向き)
+const NUT_X = 1050, END_X = 60, VIEW_W = 1200, TOP_Y = 34, BOT_Y = 206;
+
+function fretX(f){ // フレットワイヤー位置(音律の間隔を緩めてハイフレットも読める比率に)
+  return NUT_X + (END_X - NUT_X) * (1 - Math.pow(2, -f/24)) / (1 - Math.pow(2, -FRETS/24));
+}
+function noteX(f){ // 押さえる場所 = ワイヤー間の中央
+  return f === 0 ? NUT_X + 26 : (fretX(f-1) + fretX(f)) / 2;
+}
+function stringY(s){
+  // プレイヤー目線:自分のギターを覗き込んだ向き(上=6弦/太い弦、下=1弦)
+  const n = data().strings.length;
+  return TOP_Y + (BOT_Y - TOP_Y) * (n === 1 ? .5 : (n - 1 - s) / (n - 1));
+}
+
+function drawBoard(){
+  const d = data();
+  const n = d.strings.length;
+  let svg = "";
+  // 木目のボディ
+  svg += `<defs>
+    <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4A3323"/><stop offset="1" stop-color="#2E2016"/>
+    </linearGradient>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>`;
+  // ネック(指板)
+  svg += `<rect x="${END_X}" y="${TOP_Y-16}" width="${NUT_X-END_X}" height="${BOT_Y-TOP_Y+32}" rx="6" fill="url(#wood)"/>`;
+  // ポジションマーク
+  for (const f of [3,5,7,9,15,17,19,21].filter(f => f <= FRETS)) {
+    svg += `<circle cx="${noteX(f)}" cy="${(TOP_Y+BOT_Y)/2}" r="6.5" fill="#5C4530"/>`;
+  }
+  for (const f of [12,24].filter(f => f <= FRETS)) {
+    svg += `<circle cx="${noteX(f)}" cy="${(TOP_Y+BOT_Y)/2 - 34}" r="6.5" fill="#5C4530"/>`;
+    svg += `<circle cx="${noteX(f)}" cy="${(TOP_Y+BOT_Y)/2 + 34}" r="6.5" fill="#5C4530"/>`;
+  }
+  // ナットとフレットワイヤー
+  svg += `<rect x="${NUT_X-3}" y="${TOP_Y-16}" width="7" height="${BOT_Y-TOP_Y+32}" fill="#D8CFC0" rx="2"/>`;
+  for (let f = 1; f <= FRETS; f++) {
+    svg += `<line x1="${fretX(f)}" y1="${TOP_Y-16}" x2="${fretX(f)}" y2="${BOT_Y+16}" stroke="var(--fretwire)" stroke-width="2.2"/>`;
+    svg += `<text x="${noteX(f)}" y="${BOT_Y+34}" text-anchor="middle" font-size="10.5" fill="var(--ink-faint)" font-family="var(--mono)">${f}</text>`;
+  }
+  // 弦と弦ラベル(ナットの右=ヘッド側に。開放弦の光と重ならない位置)
+  for (let s = 0; s < n; s++) {
+    const y = stringY(s);
+    svg += `<line x1="${END_X}" y1="${y}" x2="${NUT_X+4}" y2="${y}" stroke="var(--string-line)" stroke-width="${d.gauges[s]}" opacity=".85"/>`;
+    svg += `<circle cx="${NUT_X+56}" cy="${y}" r="4" fill="${STRING_COLORS[s]}"/>`;
+    svg += `<text x="${NUT_X+68}" y="${y+4}" font-size="12.5" fill="var(--ink-dim)" font-family="var(--sans)">${s+1}弦 ${d.strings[s]}</text>`;
+  }
+  svg += `<g id="notes"></g>`;
+  boardSvg.setAttribute("viewBox", `0 0 ${VIEW_W} ${BOT_Y + 44}`);
+  boardSvg.innerHTML = svg;
+}
+
+function lightNotes(step){
+  const g = boardSvg.querySelector("#notes");
+  if (!g) return;
+  const d = data();
+  let svg = "";
+  const nextStep = (step + 1) % totalSteps();
+  // 次の音の予告(輪郭のみ)
+  for (const nt of d.steps[nextStep]) {
+    svg += `<circle cx="${noteX(nt.f)}" cy="${stringY(nt.s)}" r="13" fill="none" stroke="var(--glow)" stroke-width="1.5" opacity=".45" stroke-dasharray="3 3"/>`;
+  }
+  // いま鳴っている音(光る)
+  for (const nt of d.steps[step]) {
+    const x = noteX(nt.f), y = stringY(nt.s);
+    svg += `<g class="fret-note" style="transform-origin:${x}px ${y}px">
+      <circle cx="${x}" cy="${y}" r="14" fill="var(--glow)" filter="url(#glow)"/>
+      <text x="${x}" y="${y+4.5}" text-anchor="middle" font-size="13" font-weight="600" fill="#1A1408" font-family="var(--mono)">${nt.f}</text>
+    </g>`;
+  }
+  g.innerHTML = svg;
+}
+
+// ---- タブ譜の描画 -----------------------------------------------------
+const tabgrid = document.getElementById("tabgrid");
+
+function drawTab(){
+  const d = data();
+  const n = d.strings.length;
+  tabgrid.style.gridTemplateColumns = `64px repeat(${totalSteps()}, 38px)`;
+  let html = "";
+  for (let s = 0; s < n; s++) {
+    html += `<div class="rowlabel"><span class="chip" style="background:${STRING_COLORS[s]}"></span>${s+1}弦 ${d.strings[s]}</div>`;
+    for (let t = 0; t < totalSteps(); t++) {
+      const notes = d.steps[t].filter(nt => nt.s === s);
+      const bar = t % 8 === 0 ? " barstart" : "";
+      if (notes.length) {
+        html += `<button class="cell${bar}" data-s="${s}" data-t="${t}" aria-label="${s+1}弦 ${notes[0].f}フレット"><span class="ln"></span><span>${notes[0].f}</span></button>`;
+      } else {
+        html += `<button class="cell empty${bar}" data-t="${t}" tabindex="-1"><span class="ln"></span><span>—</span></button>`;
+      }
+    }
+  }
+  tabgrid.innerHTML = html;
+}
+
+function highlightTab(step){
+  for (const el of tabgrid.querySelectorAll(".cur,.curcol")) el.classList.remove("cur","curcol");
+  for (const el of tabgrid.querySelectorAll(`[data-t="${step}"]`)) {
+    el.classList.add(el.classList.contains("empty") ? "curcol" : "cur");
+  }
+  // 再生位置が常に見えるよう自動スクロール
+  const cell = tabgrid.querySelector(`.cell[data-t="${step}"]`);
+  if (cell) {
+    const sc = document.querySelector(".tab-scroll");
+    sc.scrollLeft = cell.offsetLeft - tabgrid.offsetLeft - sc.clientWidth / 2 + 19;
+  }
+}
+
+// ---- サウンド(Karplus-Strong 撥弦シンセ) ---------------------------
+function ensureAudio(){
+  if (!ctx) {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    master = ctx.createGain();
+    master.gain.value = 0.6;
+    master.connect(ctx.destination);
+  }
+  if (ctx.state === "suspended") ctx.resume();
+}
+function midiToFreq(m){ return 440 * Math.pow(2, (m - 69) / 12); }
+
+function pluck(freq, when, dur){
+  const sr = ctx.sampleRate;
+  const N = Math.max(2, Math.round(sr / freq));
+  const len = Math.floor(sr * dur);
+  const buf = ctx.createBuffer(1, len, sr);
+  const out = buf.getChannelData(0);
+  const ring = new Float32Array(N);
+  for (let i = 0; i < N; i++) ring[i] = Math.random() * 2 - 1;
+  let idx = 0;
+  const damp = inst === "bass" ? 0.998 : 0.996;
+  for (let i = 0; i < len; i++) {
+    const cur = ring[idx];
+    const nxt = ring[(idx + 1) % N];
+    out[i] = cur;
+    ring[idx] = damp * (cur + nxt) / 2;
+    idx = (idx + 1) % N;
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.5, when);
+  g.gain.exponentialRampToValueAtTime(0.001, when + dur);
+  src.connect(g); g.connect(master);
+  src.start(when);
+}
+
+function playStepAudio(step, when){
+  for (const nt of data().steps[step]) {
+    pluck(midiToFreq(data().midi[nt.s] + nt.f), when, inst === "bass" ? 1.4 : 1.1);
+  }
+}
+
+// ---- 再生スケジューラ -------------------------------------------------
+function scheduler(){
+  while (nextNoteTime < ctx.currentTime + 0.12) {
+    playStepAudio(stepIndex, nextNoteTime);
+    queue.push({ step: stepIndex, time: nextNoteTime });
+    nextNoteTime += stepDur();
+    stepIndex = (stepIndex + 1) % totalSteps();
+  }
+}
+function visualLoop(){
+  if (!playing) return;
+  while (queue.length && queue[0].time <= ctx.currentTime) {
+    visualStep = queue.shift().step;
+    lightNotes(visualStep);
+    highlightTab(visualStep);
+  }
+  requestAnimationFrame(visualLoop);
+}
+
+const playBtn = document.getElementById("play");
+function start(){
+  ensureAudio();
+  playing = true;
+  stepIndex = 0;
+  queue = [];
+  nextNoteTime = ctx.currentTime + 0.08;
+  schedTimer = setInterval(scheduler, 25);
+  requestAnimationFrame(visualLoop);
+  playBtn.textContent = "⏸ 停止";
+}
+function stop(){
+  playing = false;
+  clearInterval(schedTimer);
+  queue = [];
+  playBtn.textContent = "▶ 再生";
+}
+playBtn.addEventListener("click", () => playing ? stop() : start());
+
+// ---- 操作:テンポ・楽器切替・タブクリック -----------------------------
+const bpmInput = document.getElementById("bpm");
+const bpmVal = document.getElementById("bpmval");
+bpmInput.addEventListener("input", () => {
+  bpm = +bpmInput.value;
+  bpmVal.textContent = `${bpm} BPM`;
+});
+
+const segG = document.getElementById("segGuitar");
+const segB = document.getElementById("segBass");
+function setInstrument(name){
+  if (playing) stop();
+  inst = name;
+  segG.classList.toggle("on", name === "guitar");
+  segB.classList.toggle("on", name === "bass");
+  visualStep = -1;
+  drawBoard();
+  drawTab();
+}
+segG.addEventListener("click", () => setInstrument("guitar"));
+segB.addEventListener("click", () => setInstrument("bass"));
+
+tabgrid.addEventListener("click", (e) => {
+  const cell = e.target.closest(".cell");
+  if (!cell || cell.classList.contains("empty")) return;
+  if (playing) stop();
+  const t = +cell.dataset.t;
+  ensureAudio();
+  playStepAudio(t, ctx.currentTime + 0.02);
+  lightNotes(t);
+  highlightTab(t);
+});
+
+// ---- コード練習モード -------------------------------------------------
+// frets: 1弦→6弦(-1=鳴らさない)、fingers: 指番号(1=人差し指〜4=小指)
+const CHORDS = [
+  {name:"C",  frets:[0,1,0,2,3,-1], fingers:[0,1,0,2,3,0]},
+  {name:"G",  frets:[3,0,0,0,2,3],  fingers:[3,0,0,0,1,2]},
+  {name:"Am", frets:[0,1,2,2,0,-1], fingers:[0,1,3,2,0,0]},
+  {name:"Em", frets:[0,0,0,2,2,0],  fingers:[0,0,0,3,2,0]},
+  {name:"D",  frets:[2,3,2,0,-1,-1],fingers:[2,3,1,0,0,0]},
+  {name:"Dm", frets:[1,3,2,0,-1,-1],fingers:[1,3,2,0,0,0]},
+  {name:"A",  frets:[0,2,2,2,0,-1], fingers:[0,3,2,1,0,0]},
+  {name:"E",  frets:[0,0,1,2,2,0],  fingers:[0,0,1,3,2,0]},
+  {name:"F",  frets:[1,1,2,3,3,1],  fingers:[1,1,2,4,3,1]},
+  {name:"E7", frets:[0,0,1,0,2,0],  fingers:[0,0,1,0,2,0]},
+  {name:"G7", frets:[1,0,0,0,2,3],  fingers:[1,0,0,0,2,3]},
+];
+let mode = "tab", curChord = null;
+const FINGER_KANJI = ["", "人", "中", "薬", "小", "親"]; // 指番号→指の名前
+
+const chipsEl = document.getElementById("chordChips");
+chipsEl.innerHTML = CHORDS.map(c => `<button class="chip-btn" data-c="${c.name}">${c.name}</button>`).join("");
+
+function lightChord(ch){
+  const g = boardSvg.querySelector("#notes");
+  if (!g) return;
+  let svg = "";
+  for (let s = 0; s < ch.frets.length; s++) {
+    const f = ch.frets[s], y = stringY(s);
+    if (f === -1) {
+      svg += `<text x="${noteX(0)}" y="${y+6}" text-anchor="middle" font-size="19" fill="var(--ink-faint)" font-family="var(--sans)">×</text>`;
+    } else {
+      const x = noteX(f);
+      svg += `<g class="fret-note" style="transform-origin:${x}px ${y}px">
+        <circle cx="${x}" cy="${y}" r="14" fill="var(--glow)" filter="url(#glow)"/>
+        <text x="${x}" y="${y+4.5}" text-anchor="middle" font-size="${f === 0 ? 13 : 12.5}" font-weight="700" fill="#1A1408" font-family="${f === 0 ? "var(--mono)" : "var(--sans)"}">${f === 0 ? "0" : FINGER_KANJI[ch.fingers[s]]}</text>
+      </g>`;
+    }
+  }
+  g.innerHTML = svg;
+}
+
+function strumChord(ch){
+  ensureAudio();
+  let t = ctx.currentTime + 0.03;
+  for (let s = ch.frets.length - 1; s >= 0; s--) { // 6弦→1弦へジャラーン
+    const f = ch.frets[s];
+    if (f < 0) continue;
+    pluck(midiToFreq(data().midi[s] + f), t, 1.8);
+    t += 0.05;
+  }
+}
+
+function selectChord(ch, play){
+  curChord = ch;
+  for (const b of chipsEl.querySelectorAll(".chip-btn")) b.classList.toggle("on", b.dataset.c === ch.name);
+  lightChord(ch);
+  if (play) strumChord(ch);
+}
+chipsEl.addEventListener("click", (e) => {
+  const b = e.target.closest(".chip-btn");
+  if (!b) return;
+  selectChord(CHORDS.find(c => c.name === b.dataset.c), true);
+});
+
+// ---- TAB / コードのモード切り替え -------------------------------------
+const modeTabBtn = document.getElementById("modeTab");
+const modeChordBtn = document.getElementById("modeChord");
+const instSeg = document.getElementById("instSeg");
+const tabCard = document.getElementById("tabCard");
+const transportEl = document.getElementById("transportEl");
+const modeNote = document.getElementById("modeNote");
+const NOTE_TAB = modeNote.textContent;
+const NOTE_CHORD = "コード名をクリックすると押さえ方が光り、ジャラーンと鳴ります。";
+
+function setMode(m){
+  if (mode === m) return;
+  if (playing) stop();
+  mode = m;
+  const chord = m === "chord";
+  modeTabBtn.classList.toggle("on", !chord);
+  modeChordBtn.classList.toggle("on", chord);
+  instSeg.hidden = chord;      // コード練習はギター前提
+  tabCard.hidden = chord;
+  transportEl.hidden = chord;
+  chipsEl.hidden = !chord;
+  modeNote.textContent = chord ? NOTE_CHORD : NOTE_TAB;
+  FRETS = chord ? 12 : 24; // コード練習はローポジション中心なので12フレットで大きく表示
+  drawBoard();
+  if (chord) {
+    if (inst !== "guitar") setInstrument("guitar");
+    selectChord(curChord || CHORDS[0], false);
+  } else {
+    const g = boardSvg.querySelector("#notes");
+    if (g) g.innerHTML = "";
+    highlightTab(-1); // ハイライト解除
+  }
+}
+modeTabBtn.addEventListener("click", () => setMode("tab"));
+modeChordBtn.addEventListener("click", () => setMode("chord"));
+
+// ---- 初期描画 ---------------------------------------------------------
+drawBoard();
+drawTab();
+</script>
